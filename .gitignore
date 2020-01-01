@@ -1,0 +1,10 @@
+.history/
+.vscode/
+bin/
+target
+compiled
+.shadow-cljs
+node_modules
+*.exe
+tmp/
+__debug_bin
