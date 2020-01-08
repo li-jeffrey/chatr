@@ -5,7 +5,7 @@ import (
 	"chatr/internal/store"
 	"sync"
 
-	"github.com/google/uuid"
+	"github.com/rs/xid"
 	"github.com/valyala/fastjson"
 )
 
@@ -14,12 +14,12 @@ var log = logger.GetLogger("coordinator")
 var pool fastjson.ArenaPool
 
 var mutex sync.Mutex
-var sessions = make(map[string]Session, 0)
-var sessionIds []string // this is used as a fifo circular structure
+var sessions = make(map[xid.ID]Session, 0)
+var sessionIds []xid.ID // this is used as a fifo circular structure
 var pendingAssignment []chan<- *Session
 
 type Session struct {
-	ID     string
+	ID     xid.ID
 	Reads  chan []byte
 	Writes chan []byte
 	p      fastjson.Parser
@@ -29,7 +29,7 @@ func CreateSession() *Session {
 	mutex.Lock()
 	defer mutex.Unlock()
 
-	id := uuid.New().String()
+	id := xid.New()
 	s := &Session{
 		ID:     id,
 		Reads:  make(chan []byte),
@@ -62,14 +62,14 @@ func onSessionCreated(s *Session) {
 	log.Info("Removed session %s.", s.ID)
 }
 
-func removeSession(id string) {
+func removeSession(id xid.ID) {
 	mutex.Lock()
 	defer mutex.Unlock()
 	delete(sessions, id)
 }
 
 func selectNextSession() <-chan *Session {
-	c := make(chan *Session)
+	c := make(chan *Session, 1)
 	mutex.Lock()
 	defer mutex.Unlock()
 	return selectNextSessionRecur(c)
@@ -82,7 +82,7 @@ func selectNextSessionRecur(c chan *Session) <-chan *Session {
 		return c
 	}
 
-	var next string
+	var next xid.ID
 	next, sessionIds = sessionIds[0], sessionIds[1:]
 	s, e := sessions[next]
 	if !e {
@@ -105,7 +105,8 @@ func (s *Session) sendResponse(responseType []byte, sub *store.Submission) {
 	a.Reset()
 	obj := a.NewObject()
 	obj.Set("ResponseType", a.NewStringBytes(responseType))
-	obj.Set("ID", a.NewString(sub.ID))
+	id, _ := s.ID.MarshalText()
+	obj.Set("ID", a.NewStringBytes(id))
 	obj.Set("Question", a.NewStringBytes(sub.Question))
 	obj.Set("Answer", a.NewStringBytes(sub.Answer))
 

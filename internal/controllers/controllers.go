@@ -8,7 +8,8 @@ import (
 
 func SubmitQuestion(ctx *fasthttp.RequestCtx) {
 	s := store.CreateSubmission(ctx.PostBody())
-	ctx.Response.SetBodyString(s.ID)
+	id, _ := s.ID.MarshalText()
+	ctx.Response.SetBodyRaw(id)
 }
 
 func SubmitAnswer(ctx *fasthttp.RequestCtx) {

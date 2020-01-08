@@ -12,6 +12,7 @@ const (
 	Info
 	Warn
 	Error
+	Fatal
 )
 
 func (level _level) Name() string {
@@ -23,16 +24,18 @@ func (level _level) Name() string {
 	case 2:
 		return "WARN"
 	case 3:
-		fallthrough
-	default:
 		return "ERROR"
+	case 4:
+		return "FATAL"
+	default:
+		panic("Unreachable")
 	}
 }
 
 var (
 	LoggerLevel = Debug
-	_stdout     = log.New(os.Stdout, "", log.Ldate|log.Ltime|log.Lmicroseconds)
-	_stderr     = log.New(os.Stderr, "", log.Ldate|log.Ltime|log.Lmicroseconds)
+	_stdout     = log.New(os.Stdout, "", log.LstdFlags|log.Lmicroseconds)
+	_stderr     = log.New(os.Stderr, "", log.LstdFlags|log.Lmicroseconds)
 )
 
 type Logger struct {
@@ -59,8 +62,8 @@ func (logger *Logger) Error(format string, a ...interface{}) {
 	logger.print(Error, format, a)
 }
 
-func (logger *Logger) Fatal(a ...interface{}) {
-	log.Fatal(a...)
+func (logger *Logger) Fatal(format string, a ...interface{}) {
+	_stderr.Fatalf(format, a...)
 }
 
 func (logger *Logger) print(level _level, format string, a []interface{}) {
