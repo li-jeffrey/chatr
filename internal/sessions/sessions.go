@@ -1,6 +1,7 @@
 package sessions
 
 import (
+	"bytes"
 	"chatr/internal/store"
 
 	"github.com/valyala/fastjson"
@@ -12,6 +13,8 @@ var pool fastjson.ArenaPool
 var (
 	submission []byte = []byte("Submission")
 	assignment []byte = []byte("Assignment")
+	ping       []byte = []byte("Ping")
+	pong       []byte = []byte("Pong")
 )
 
 var byLatest store.Ordering = func(s1, s2 *store.Submission) bool {
@@ -42,9 +45,19 @@ Listener:
 			case store.Assigned:
 				s.sendResponse(assignment, e.Submission)
 			}
-		case _, open := <-s.Reads:
+		case msg, open := <-s.Reads:
 			if !open {
 				break Listener
+			}
+
+			if v, e := s.p.ParseBytes(msg); e == nil {
+				if bytes.Equal(ping, v.GetStringBytes("RequestType")) {
+					a := pool.Get()
+					a.Reset()
+					obj := a.NewObject()
+					obj.Set("ResponseType", a.NewStringBytes(pong))
+					s.sendMessage(obj.MarshalTo(nil))
+				}
 			}
 		case <-s.closeSignal:
 			break Listener

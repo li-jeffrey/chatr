@@ -11,4 +11,4 @@
 (def ws-url
   (if debug?
     "ws://localhost:8080/api/v1/ws"
-    (str "ws://" (.-host (.-location js/window)) "/api/v1/ws")))
+    (str "wss://" (.-host (.-location js/window)) "/api/v1/ws")))

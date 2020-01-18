@@ -25,6 +25,7 @@
       "Submission" (re-frame/dispatch [::on-submission body])
       "Assignment" (re-frame/dispatch [::on-assignment body])
       "Disconnection" (re-frame/dispatch [::on-disconnection body])
+      "Pong" (js/setTimeout #(re-frame/dispatch [::ws-ping]) 30000)
       (println "Unhandled message: " msg))))
 
 (re-frame/reg-event-db
@@ -79,12 +80,19 @@
     (assoc db :connected? false)))
 
 (re-frame/reg-event-db
+  ::ws-ping
+  (fn [db _]
+    (ws/send (:ws db) {:RequestType "Ping"})
+    db))
+
+(re-frame/reg-event-fx
   ::on-connection
   [session-id->local-store]
-  (fn-traced [db [_ {:keys [SessionID]}]]
-             (assoc db :session-id SessionID
-                       :connected? true
-                       :disconnect-reason "")))
+  (fn-traced [{:keys [db]} [_ {:keys [SessionID]}]]
+             {:db (assoc db :session-id SessionID
+                            :connected? true
+                            :disconnect-reason "")
+              :dispatch [::ws-ping]}))
 
 (re-frame/reg-event-db
   ::on-disconnection

@@ -23,6 +23,7 @@ func RegisterEndpoints(router *fasthttprouter.Router) {
 	handle(router, "POST", "/submit/answer", SubmitAnswer)
 	handleWs(router, wsPath)
 	handleFS(router, "/", "public")
+	handleFS(router, "/images/*filepath", "public/images")
 	handleFS(router, "/js/*filepath", "public/js")
 	handleFS(router, "/vendor/*filepath", "public/vendor")
 	handleFS(router, "/css/*filepath", "public/css")
