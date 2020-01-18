@@ -7,7 +7,7 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-const wsPath = "/ws"
+const wsPath = "/api/v1/ws"
 
 var upgrader = websocket.FastHTTPUpgrader{
 	CheckOrigin: func(ctx *fasthttp.RequestCtx) bool {

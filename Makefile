@@ -5,6 +5,9 @@ PROJECT_NAME=$(shell basename "$(PROJECT_DIR)")
 
 build:
 	go build -o ./bin/$(PROJECT_NAME) ./cmd/$(PROJECT_NAME)/main.go || exit
+	cd ./app; lein prod || exit
+	cd ./app; lein garden once || exit
+	cp -r app/resources/* bin/
 
 test:
 	go test -v ./... || exit
@@ -18,7 +21,3 @@ start-app:
 
 test-app:
 	cd ./app; lein run -m shadow.cljs.devtools.cli compile karma-test; karma start --single-run --reporters junit,dots
-
-clean:
-	rm -r ./bin
-	cd ./app; lein clean

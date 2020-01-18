@@ -5,7 +5,8 @@
     [chatr.db :as db]
     [ajax.core :refer [POST]]
     [day8.re-frame.tracing :refer-macros [fn-traced defn-traced]]
-    [ws.core :as ws])
+    [ws.core :as ws]
+    [chatr.config :as config])
   (:import (goog.net XhrIo)))
 
 (re-frame/reg-event-fx
@@ -31,8 +32,8 @@
   (fn [{:as   db
         :keys [session-id]} _]
     (go (let [url (if (empty? session-id)
-                    "ws://localhost:8080/ws"
-                    (str "ws://localhost:8080/ws?sessionID=" session-id))
+                    config/ws-url
+                    (str config/ws-url "?sessionID=" session-id))
               socket (ws/create :url url
                                 :on-message ws-handler
                                 :on-close #(re-frame/dispatch [::ws-disconnect]))]
@@ -47,7 +48,7 @@
   ::submit-question
   (fn-traced [{:as   db
                :keys [session-id]} [_ text]]
-             (POST "http://localhost:8080/api/v1/submit/question"
+             (POST (str config/http-base "/submit/question")
                    {:url-params    {:sessionID session-id}
                     :body          text
                     :error-handler error-handler
@@ -58,7 +59,7 @@
   ::submit-answer
   (fn-traced [{:as   db
                :keys [session-id pending-assignments]} [_ id text]]
-             (POST "http://localhost:8080/api/v1/submit/answer"
+             (POST (str config/http-base "/submit/answer")
                    {:url-params    {:id id :sessionID session-id}
                     :body          text
                     :error-handler error-handler})

@@ -22,6 +22,10 @@ func RegisterEndpoints(router *fasthttprouter.Router) {
 	handle(router, "POST", "/submit/question", SubmitQuestion)
 	handle(router, "POST", "/submit/answer", SubmitAnswer)
 	handleWs(router, wsPath)
+	handleFS(router, "/", "public")
+	handleFS(router, "/js/*filepath", "public/js")
+	handleFS(router, "/vendor/*filepath", "public/vendor")
+	handleFS(router, "/css/*filepath", "public/css")
 	handleNotFound(router)
 }
 
@@ -37,6 +41,11 @@ func handle(router *fasthttprouter.Router, method string, requestPath string, ha
 func handleWs(router *fasthttprouter.Router, wsPath string) {
 	router.Handle("GET", wsPath, upgradeConnection)
 	log.Info("Registered ws connection on %s", wsPath)
+}
+
+func handleFS(router *fasthttprouter.Router, path string, relativePath string) {
+	router.Handle("GET", path, fasthttp.FSHandler(relativePath, 1))
+	log.Info("Registered FSHandler on %s", path)
 }
 
 func handleNotFound(router *fasthttprouter.Router) {
