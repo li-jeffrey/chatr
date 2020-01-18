@@ -1,4 +1,4 @@
-chmod a+rx chatr
-chmod -R a+rx public
+cd bin
+chmod -R a+rx .
 
 ./chatr --port $PORT

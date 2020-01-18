@@ -1,8 +1,8 @@
 PROJ_DIR=`pwd`
 pushd $TEMP
-cp -r "${PROJ_DIR}/bin" ./app
-cp "${PROJ_DIR}/scripts/start.sh" ./app
-tar czfv slug.tgz ./app
-rm -r app
+cp -r "${PROJ_DIR}/bin" ./bin
+cp "${PROJ_DIR}/scripts/start.sh" ./bin
+tar czfv slug.tgz ./bin
+rm -r bin
 popd
 mv "$TEMP/slug.tgz" ./
