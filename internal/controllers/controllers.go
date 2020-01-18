@@ -7,14 +7,18 @@ import (
 )
 
 func SubmitQuestion(ctx *fasthttp.RequestCtx) {
-	s := store.CreateSubmission(ctx.PostBody())
-	id, _ := s.ID.MarshalText()
-	ctx.Response.SetBodyRaw(id)
+	sessionID := ctx.QueryArgs().Peek("sessionID")
+	if sessionID == nil {
+		ctx.Error("SessionID required", fasthttp.StatusBadRequest)
+		return
+	}
+
+	store.CreateSubmission(ctx.PostBody(), sessionID)
 }
 
 func SubmitAnswer(ctx *fasthttp.RequestCtx) {
 	id := string(ctx.QueryArgs().Peek("id"))
 	if e := store.UpdateSubmission(id, ctx.PostBody()); e != nil {
-		ctx.Response.SetBodyString(e.Error())
+		ctx.Error(e.Error(), fasthttp.StatusConflict)
 	}
 }

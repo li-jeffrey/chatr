@@ -9,7 +9,9 @@
                  [re-frame "0.10.9"]
                  [re-com "2.6.0"]
                  [garden "1.3.9"]
-                 [ns-tracker "0.4.0"]]
+                 [ns-tracker "0.4.0"]
+                 [cljs-ajax "0.8.0"]
+                 [tailrecursion/cljs-priority-map "1.2.1"]]
 
   :plugins [[lein-garden "0.3.0"]
             [lein-shell "0.5.0"]]

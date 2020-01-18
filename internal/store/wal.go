@@ -23,22 +23,15 @@ func EnablePersistence(location string) {
 		loadFromFile(f)
 		handle = f
 	}
-
-	SubscribeCreations(handleCreation)
 }
 
-func handleCreation(s *Submission) {
-	writeToLog(s)
-	subscribe(s.ID.String(), writeToLog)
-}
-
-func writeToLog(s *Submission) {
+func writeToLog(s Submission) {
 	if e := doWrite(s); e != nil {
 		log.Error("Failed to write: %s", e)
 	}
 }
 
-func doWrite(s *Submission) error {
+func doWrite(s Submission) error {
 	fmutex.Lock()
 	defer fmutex.Unlock()
 	buf.Reset()
@@ -47,6 +40,10 @@ func doWrite(s *Submission) error {
 	buf.Write(s.Question)
 	buf.WriteByte(us)
 	buf.Write(s.Answer)
+	buf.WriteByte(us)
+	buf.Write(s.OwnerID.Bytes())
+	buf.WriteByte(us)
+	buf.Write(s.AssignedID.Bytes())
 	buf.WriteByte(us)
 
 	b := make([]byte, 8)
@@ -66,28 +63,27 @@ func loadFromFile(f *os.File) {
 		var s Submission
 		record := scanner.Bytes()
 		split := bytes.Split(record, []byte{us})
-		if len(split) < 4 {
+		if len(split) < 6 {
 			log.Warn("Deformed record: %s", record)
 			continue
 		}
 
-		id, e := xid.FromBytes(split[0])
-		if e != nil {
-			log.Warn("Deformed record: %s", record)
-			continue
-		}
-
-		lastUpdate, _ := binary.Varint(split[3])
+		id, _ := xid.FromBytes(split[0])
+		ownerID, _ := xid.FromBytes(split[3])
+		assignedID, _ := xid.FromBytes(split[4])
+		lastUpdate, _ := binary.Varint(split[5])
 
 		s.ID = id
 		s.Question = split[1]
 		s.Answer = split[2]
+		s.OwnerID = ownerID
+		s.AssignedID = assignedID
 		s.LastUpdate = lastUpdate
 
-		loaded[s.ID] = s
+		loaded[id] = s
 	}
 
-	store = loaded
+	db = loaded
 	log.Info("Loaded %v entries from file.", len(loaded))
 }
 

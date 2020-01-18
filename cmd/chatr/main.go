@@ -13,11 +13,15 @@ import (
 
 var log = logger.GetLogger("main")
 var port = flag.Int("port", 8080, "Http port for the application. Default is 8080")
+var persistEnabled = flag.Bool("store.persistence.enabled", false, "Enable store persistence. Default disabled")
 var storeLocation = flag.String("store.location", "store.bin", "Location of store file. Default is store.bin")
 
 func main() {
 	flag.Parse()
-	store.EnablePersistence(*storeLocation)
+	if *persistEnabled {
+		store.EnablePersistence(*storeLocation)
+	}
+
 	router := fasthttprouter.New()
 	controllers.RegisterEndpoints(router)
 

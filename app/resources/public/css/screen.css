@@ -1,7 +1,18 @@
-body {
-  color: red;
+.main-title {
+  color: #001f3f;
 }
 
-.level1 {
-  color: green;
+.alert-state {
+  color: #ff4136;
+}
+
+.chat-panel-input {
+  margin: 10px 20px 10px 0px;
+  border: 1px solid #aaaaaa;
+}
+
+.chat-panel-btn {
+  margin: 13px 0px 0px 10px;
+  color: #0074D9;
+  hover-color: #7FDBFF;
 }

@@ -5,6 +5,7 @@ import (
 )
 
 var Interceptors = []Interceptor{
+	CorsInterceptor{},
 	LoggingInterceptor{},
 }
 

@@ -1,5 +1,6 @@
 .history/
 .vscode/
+.idea/
 bin/
 target
 compiled
@@ -8,3 +9,5 @@ node_modules
 *.exe
 tmp/
 __debug_bin
+.nrepl-port
+*.iml

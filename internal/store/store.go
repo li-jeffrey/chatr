@@ -4,10 +4,11 @@ import (
 	"chatr/internal/logger"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/rs/xid"
 )
+
+var log = logger.GetLogger("store")
 
 // Submission is a record containing a question-answer pair and its ID.
 type Submission struct {
@@ -15,84 +16,60 @@ type Submission struct {
 	Question   []byte
 	Answer     []byte
 	LastUpdate int64
+	OwnerID    xid.ID
+	AssignedID xid.ID
 }
 
-type Callback func(*Submission)
+var Assigner func() xid.ID
 
-var log = logger.GetLogger("store")
-
-type event interface{}
-
-// events
-type submissionCreated struct{}
-
-func (e submissionCreated) String() string {
-	return "{SubmissionCreated}"
+type Event struct {
+	Type       EventType
+	Submission Submission
 }
 
-type submissionChanged struct {
-	id xid.ID
-}
+type EventType string
 
-func (s submissionChanged) String() string {
-	return fmt.Sprintf("{SubmissionChanged %s}", s.id)
-}
+const (
+	Assigned  EventType = "Assigned"
+	Submitted EventType = "Submitted"
+)
 
 // stored state
 var mutex sync.Mutex
-var subscribers = make(map[event][]Callback) // key: either an ID or "SubmissionCreated"
-var store = make(map[xid.ID]Submission)
+var subscribers = make(map[xid.ID]chan<- Event)
 
-func SubscribeSubmission(id string, cb Callback) {
-	sid, e := xid.FromString(id)
-	if e != nil {
-		return
-	}
-
+func Subscribe(sessionID xid.ID) <-chan Event {
+	events := make(chan Event)
 	mutex.Lock()
 	defer mutex.Unlock()
-	if s := getSubmission(sid); s != nil {
-		cb(s)
-		subscribe(submissionChanged{sid}, cb)
+	subscribers[sessionID] = events
+
+	return events
+}
+
+func CreateSubmission(q []byte, ownerID []byte) Submission {
+	var oid xid.ID
+	oid.UnmarshalText(ownerID)
+
+	s := Submission{
+		OwnerID: oid,
 	}
-}
 
-func SubscribeCreations(cb Callback) {
-	mutex.Lock()
-	defer mutex.Unlock()
-	subscribe(submissionCreated{}, cb)
-}
-
-func subscribe(e event, cb Callback) {
-	subscribers[e] = append(subscribers[e], cb)
-}
-
-func CreateSubmission(q []byte) *Submission {
-	mutex.Lock()
-	defer mutex.Unlock()
-	id := xid.New()
-	s := &Submission{
-		ID:         id,
-		LastUpdate: timestamp(),
-	}
 	s.Question = append(s.Question, q...)
 
-	store[id] = *s
-	handleEvent(submissionCreated{}, s)
-	return s
+	inserted := insert(s)
+	subscribers[oid] <- Event{
+		Submitted, inserted,
+	}
+
+	go assign(inserted)
+	return inserted
 }
 
 func UpdateSubmission(id string, a []byte) error {
-	sid, e := xid.FromString(id)
-	if e != nil {
-		return fmt.Errorf("Invalid id: %s", id)
-	}
-
-	mutex.Lock()
-	defer mutex.Unlock()
-
-	s := getSubmission(sid)
-	if s == nil {
+	subID, _ := xid.FromString(id)
+	s, e := getByID(subID)
+	if !e {
 		return fmt.Errorf("Submission not found")
 	}
 
@@ -101,29 +78,35 @@ func UpdateSubmission(id string, a []byte) error {
 	}
 
 	s.Answer = append(s.Answer, a...)
-	s.LastUpdate = timestamp()
-	handleEvent(submissionChanged{sid}, s)
+
+	insert(s)
+	go sendUpdate(s)
 	return nil
 }
 
-func getSubmission(id xid.ID) *Submission {
-	if s, e := store[id]; e {
-		return &s
+func assign(s Submission) {
+	id := Assigner()
+	if id == s.OwnerID {
+		id = Assigner()
 	}
 
-	return nil
+	s.AssignedID = id
+	inserted := insert(s)
+	subscribers[id] <- Event{
+		Assigned, inserted,
+	}
 }
 
-func handleEvent(e event, s *Submission) {
-	log.Info("Posting event: %s", e)
-
-	if cbs, exists := subscribers[e]; exists {
-		for _, cb := range cbs {
-			go cb(s)
+func sendUpdate(s Submission) {
+	if owner, e := subscribers[s.OwnerID]; e {
+		owner <- Event{
+			Submitted, s,
 		}
 	}
-}
 
-func timestamp() int64 {
-	return time.Now().Unix()
+	if assigned, e := subscribers[s.AssignedID]; e {
+		assigned <- Event{
+			Assigned, s,
+		}
+	}
 }
