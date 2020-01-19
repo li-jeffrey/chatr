@@ -64,10 +64,7 @@ Listener:
 		}
 	}
 
-	mutex.Lock()
 	s.isActive = false
-	mutex.Unlock()
-
 	close(s.Writes)
 	log.Info("Closed session %s.", s.ID)
 }
